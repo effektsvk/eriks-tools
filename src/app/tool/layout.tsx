@@ -1,8 +1,9 @@
-import { ToolLayout } from './layout';
-import { ClientBreadcrumb } from './ClientBreadcrumb';
+import ClientBreadcrumb from './ClientBreadcrumb';
 
 export default function ToolLayout({
   children,
+}: {
+  children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-1 flex-col items-stretch justify-center">
@@ -15,5 +16,3 @@ export default function ToolLayout({
     </div>
   );
 }
-
-export { ToolLayout };
