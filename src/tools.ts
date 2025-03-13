@@ -6,6 +6,14 @@ export const TOOLS: Tool[] = [
     slug: "image-converter",
     description: "Convert images to different formats",
     icon: "🖼️",
+    enabled: false,
+  },
+  {
+    title: "OCR Labeling Tool",
+    slug: "ocr-labeling-tool",
+    description: "Label characters for Tesseract OCR",
+    icon: "🔤",
+    enabled: true,
   },
 ];
 

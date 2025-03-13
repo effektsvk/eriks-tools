@@ -7,7 +7,7 @@ export default function ToolLayout({
 }) {
   return (
     <div className="flex flex-1 flex-col items-stretch justify-center">
-      <header>
+      <header className="m-4">
         <ClientBreadcrumb />
       </header>
       <main>

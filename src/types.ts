@@ -3,4 +3,5 @@ export type Tool = {
   slug: string;
   description: string;
   icon: string;
+  enabled: boolean;
 };

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { TOOLS } from "@/tools";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 export default function ClientBreadcrumb() {
   const pathname = usePathname();
@@ -19,7 +20,9 @@ export default function ClientBreadcrumb() {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink href="/">Home</BreadcrumbLink>
+          <BreadcrumbLink asChild>
+            <Link href="/">Home</Link>
+          </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
