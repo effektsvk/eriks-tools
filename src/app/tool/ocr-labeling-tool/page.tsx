@@ -36,7 +36,6 @@ export default function OCRLabelingTool() {
   const [currentBox, setCurrentBox] = useState<Partial<BoundingBox> | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [selectedBoxId, setSelectedBoxId] = useState<number | null>(null)
-  const [scale, setScale] = useState(1)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<string>("")
@@ -47,6 +46,56 @@ export default function OCRLabelingTool() {
   const imageWidth = currentImage?.width || 0
   const imageHeight = currentImage?.height || 0
 
+  // Mouse event handlers for drawing boxes
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!imageLoaded) return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
+
+    // Check if clicking on an existing box
+    const clickedBox = boxes.find(
+      (box) => x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height,
+    )
+
+    if (clickedBox) {
+      setSelectedBoxId(clickedBox.id)
+      return
+    }
+
+    // Start drawing a new box
+    setIsDrawing(true)
+    setCurrentBox({ x, y, width: 0, height: 0 })
+    setSelectedBoxId(null)
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !currentBox || !imageLoaded) return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
+
+    setCurrentBox({
+      ...currentBox,
+      width: x - (currentBox.x || 0),
+      height: y - (currentBox.y || 0),
+    })
+
+    drawBoxes()
+  }
+
   // Draw all boxes and the current box being drawn
   const drawBoxes = useCallback(() => {
     const canvas = canvasRef.current
@@ -56,7 +105,6 @@ export default function OCRLabelingTool() {
 
     // Ensure canvas dimensions match image dimensions
     if (canvas.width !== imageWidth || canvas.height !== imageHeight) {
-      console.log("Updating canvas dimensions to match image:", imageWidth, "x", imageHeight)
       canvas.width = imageWidth
       canvas.height = imageHeight
     }
@@ -146,79 +194,7 @@ export default function OCRLabelingTool() {
     }
   }
 
-  // Update canvas scale based on container size
-  const updateCanvasScale = useCallback(() => {
-    if (!containerRef.current || !imageWidth) return
-
-    const containerWidth = containerRef.current.clientWidth
-    const newScale = Math.min(containerWidth / imageWidth, 1)
-    console.log("Setting scale to:", newScale, "Container width:", containerWidth)
-    setScale(newScale)
-
-    // Ensure canvas dimensions are correct after scale change
-    if (canvasRef.current) {
-      canvasRef.current.width = imageWidth
-      canvasRef.current.height = imageHeight
-    }
-  }, [imageWidth, imageHeight])
-
   // Mouse event handlers for drawing boxes
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!imageLoaded) return
-
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const rect = canvas.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / scale
-    const y = (e.clientY - rect.top) / scale
-
-    // Check if clicking on an existing box
-    const clickedBox = boxes.find(
-      (box) => x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height,
-    )
-
-    if (clickedBox) {
-      setSelectedBoxId(clickedBox.id)
-      return
-    }
-
-    // Start drawing a new box
-    setIsDrawing(true)
-    setCurrentBox({ x, y, width: 0, height: 0 })
-    setSelectedBoxId(null)
-  }
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !currentBox || !imageLoaded) return
-
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const rect = canvas.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / scale
-    const y = (e.clientY - rect.top) / scale
-
-    setCurrentBox({
-      ...currentBox,
-      width: x - (currentBox.x || 0),
-      height: y - (currentBox.y || 0),
-    })
-
-    // We'll draw the current box directly here instead of relying on state updates
-    const ctx = canvas.getContext("2d")
-    if (ctx) {
-      // Redraw all boxes to clear previous current box
-      drawBoxes()
-
-      // Draw current box
-      ctx.strokeStyle = "#0000ff"
-      ctx.lineWidth = 2
-      ctx.strokeRect(currentBox.x || 0, currentBox.y || 0, x - (currentBox.x || 0), y - (currentBox.y || 0))
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleMouseUp = (_: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !currentBox || !imageLoaded) return
 
@@ -268,35 +244,6 @@ export default function OCRLabelingTool() {
     }, 0)
   }
 
-  // Add a box programmatically (useful for testing/debugging)
-  // const addTestBox = () => {
-  //   if (!imageLoaded) return
-
-  //   const newBox: BoundingBox = {
-  //     id: Date.now(),
-  //     x: Math.random() * (imageWidth - 100),
-  //     y: Math.random() * (imageHeight - 100),
-  //     width: 100,
-  //     height: 100,
-  //     label: String.fromCharCode(65 + boxes.length), // A, B, C, etc.
-  //   }
-
-  //   const updatedBoxes = [...boxes, newBox]
-  //   setBoxes(updatedBoxes)
-  //   setSelectedBoxId(newBox.id)
-  //   console.log("Added test box:", newBox, "Total boxes:", updatedBoxes.length)
-  // }
-
-  // For debugging, uncomment to use this function
-  // useEffect(() => {
-  //   // Add a button to invoke addTestBox for easier testing
-  //   const handleKeyPress = (e: KeyboardEvent) => {
-  //     if (e.key === 't') addTestBox();
-  //   };
-  //   window.addEventListener('keypress', handleKeyPress);
-  //   return () => window.removeEventListener('keypress', handleKeyPress);
-  // }, []);
-
   // Update label for selected box
   const updateLabel = (label: string) => {
     if (selectedBoxId === null) return
@@ -333,15 +280,21 @@ export default function OCRLabelingTool() {
         setCurrentBox(null)
         setIsDrawing(false)
         
-        // Set current index first, then load image
-        setCurrentImageIndex(nextIndex)
-        
-        // Use timeout to ensure state updates before loading image
-        setTimeout(() => {
+        // Create a new Image object to ensure dimensions are loaded
+        const img = new Image()
+        img.onload = () => {
+          // Update current index and load image data only after dimensions are confirmed
+          setCurrentImageIndex(nextIndex)
           setBoxes(nextImage.boxes || [])
           setImageLoaded(true)
-          updateCanvasScale()
-        }, 0)
+          // Force canvas update after image is loaded
+          if (canvasRef.current) {
+            canvasRef.current.width = img.width
+            canvasRef.current.height = img.height
+            drawBoxes()
+          }
+        }
+        img.src = nextImage.url
       }
     }
   }
@@ -366,15 +319,21 @@ export default function OCRLabelingTool() {
         setCurrentBox(null)
         setIsDrawing(false)
         
-        // Set current index first, then load image
-        setCurrentImageIndex(prevIndex)
-        
-        // Use timeout to ensure state updates before loading image
-        setTimeout(() => {
+        // Create a new Image object to ensure dimensions are loaded
+        const img = new Image()
+        img.onload = () => {
+          // Update current index and load image data only after dimensions are confirmed
+          setCurrentImageIndex(prevIndex)
           setBoxes(prevImage.boxes || [])
           setImageLoaded(true)
-          updateCanvasScale()
-        }, 0)
+          // Force canvas update after image is loaded
+          if (canvasRef.current) {
+            canvasRef.current.width = img.width
+            canvasRef.current.height = img.height
+            drawBoxes()
+          }
+        }
+        img.src = prevImage.url
       }
     }
   }
@@ -416,7 +375,7 @@ export default function OCRLabelingTool() {
           if (newImages[newIndex]) {
             setBoxes(newImages[newIndex].boxes || [])
             setImageLoaded(true)
-            updateCanvasScale()
+            drawBoxes()
           }
         }, 0)
       } else if (newImages.length > 0) {
@@ -434,7 +393,7 @@ export default function OCRLabelingTool() {
           if (newImages[0]) {
             setBoxes(newImages[0].boxes || [])
             setImageLoaded(true)
-            updateCanvasScale()
+            drawBoxes()
           }
         }, 0)
       } else {
@@ -503,19 +462,7 @@ export default function OCRLabelingTool() {
   // Redraw boxes when they change
   useEffect(() => {
     drawBoxes()
-  }, [boxes, selectedBoxId, scale, drawBoxes])
-
-  // Update scale when window resizes
-  useEffect(() => {
-    const handleResize = () => {
-      updateCanvasScale()
-    }
-
-    window.addEventListener("resize", handleResize)
-    return () => {
-      window.removeEventListener("resize", handleResize)
-    }
-  }, [imageWidth, updateCanvasScale])
+  }, [boxes, selectedBoxId, drawBoxes])
 
   // Clean up object URLs only when unmounting
   useEffect(() => {
@@ -533,16 +480,7 @@ export default function OCRLabelingTool() {
     if (currentImage) {
       setBoxes(currentImage.boxes || [])
       setImageLoaded(true)
-      updateCanvasScale()
     } else {
-      setBoxes([])
-      setImageLoaded(false)
-    }
-  }, [currentImage, updateCanvasScale])
-
-  // Remove the effect that was causing duplicate loading
-  useEffect(() => {
-    if (!currentImage) {
       setBoxes([])
       setImageLoaded(false)
     }
@@ -648,44 +586,46 @@ export default function OCRLabelingTool() {
                     <p>Upload an image to begin labeling</p>
                   </div>
                 ) : imageLoaded && imageUrl ? (
-                  <div className="relative overflow-auto w-full h-full">
-                    {/* Background image for reference */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={imageUrl || "/placeholder.svg"}
-                      alt="Uploaded image"
-                      className="absolute top-0 left-0"
-                      style={{
-                        transform: `scale(${scale})`,
-                        transformOrigin: "top left",
-                        pointerEvents: "none",
-                      }}
-                    />
+                  <div className="relative overflow-auto w-full h-full flex items-center justify-center">
+                    <div style={{ position: "relative", width: "fit-content", height: "fit-content" }}>
+                      {/* Background image for reference */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imageUrl}
+                        alt="Uploaded image"
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "500px",
+                          width: "auto",
+                          height: "auto",
+                          display: "block"
+                        }}
+                      />
 
-                    {/* Canvas for drawing boxes */}
-                    <canvas
-                      ref={canvasRef}
-                      onMouseDown={handleMouseDown}
-                      onMouseMove={handleMouseMove}
-                      onMouseUp={handleMouseUp}
-                      onMouseLeave={handleMouseUp}
-                      style={{
-                        transform: `scale(${scale})`,
-                        transformOrigin: "top left",
-                        cursor: isDrawing ? "crosshair" : "default",
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        zIndex: 10,
-                      }}
-                    />
+                      {/* Canvas for drawing boxes */}
+                      <canvas
+                        ref={canvasRef}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          cursor: isDrawing ? "crosshair" : "default",
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : null}
               </div>
 
               {imageLoaded && (
                 <div className="text-sm text-gray-500">
-                  Image dimensions: {imageWidth} × {imageHeight} pixels | Scale: {Math.round(scale * 100)}% | Boxes:{" "}
+                  Image dimensions: {imageWidth} × {imageHeight} pixels | Boxes:{" "}
                   {boxes.length}
                   {debugInfo && <div className="mt-1 text-xs text-blue-500">{debugInfo}</div>}
                 </div>
