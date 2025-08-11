@@ -6,7 +6,7 @@ export const TOOLS: Tool[] = [
     slug: "image-converter",
     description: "Convert images to different formats",
     icon: "🖼️",
-    enabled: false,
+    enabled: true,
   },
   {
     title: "OCR Labeling Tool",
