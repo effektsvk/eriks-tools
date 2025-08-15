@@ -87,23 +87,27 @@ export default function ImageConverter() {
         {file && (
           <div className="flex flex-col gap-2">
             <Label>Preview</Label>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={URL.createObjectURL(file)}
-              alt="preview"
-              className="max-w-full max-h-64"
-            />
+            <div className="h-48 w-full flex items-center justify-center overflow-hidden rounded-md border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={URL.createObjectURL(file)}
+                alt="preview"
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
           </div>
         )}
         {convertedUrl && (
           <div className="flex flex-col gap-2">
             <Label>Result</Label>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={convertedUrl}
-              alt="converted"
-              className="max-w-full max-h-64"
-            />
+            <div className="h-48 w-full flex items-center justify-center overflow-hidden rounded-md border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={convertedUrl}
+                alt="converted"
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
           </div>
         )}
       </CardContent>
